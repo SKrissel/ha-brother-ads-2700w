@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import patch
 
+from freezegun.api import FrozenDateTimeFactory
+import pytest
+
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, State
@@ -19,10 +22,22 @@ from custom_components.brother_ads_2700w.const import CONF_AUTO_TIME_SYNC, DOMAI
 
 from .fake_scanner import SERIAL, FakeScanner
 
-EXPECTED_SYNC_BODY = (
-    "TimeMethod=1&&TimeZoneNegativ=0&&TimeDiffSecs=3600"
-    "&&ClockType=0&&AutoDaylight=1&&Date_Save"
-)
+SUMMER = "2026-10-10 17:59:00+00:00"  # Europe/Berlin: CEST, UTC+2
+WINTER = "2026-11-10 17:59:00+00:00"  # Europe/Berlin: CET, UTC+1
+
+
+def _sync_body(offset: int) -> str:
+    sign = 1 if offset < 0 else 0
+    return (
+        f"TimeMethod=1&&TimeZoneNegativ={sign}&&TimeDiffSecs={abs(offset)}"
+        "&&ClockType=0&&AutoDaylight=0&&Date_Save"
+    )
+
+
+@pytest.fixture(autouse=True)
+def _freeze_summer(freezer: FrozenDateTimeFactory) -> None:
+    """Run all tests at a fixed time during daylight saving time."""
+    freezer.move_to(SUMMER)
 
 
 def _entity_id(hass: HomeAssistant, platform: str, key: str) -> str:
@@ -80,7 +95,9 @@ async def test_auto_time_sync(
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
-    assert fake.sync_requests == [EXPECTED_SYNC_BODY]
+    # The offset currently in effect (CEST), not standard time + DST flag,
+    # because the device ignores its own DST switch.
+    assert fake.sync_requests == [_sync_body(7200)]
     # Logged out again afterwards.
     assert not any(fake.sessions.values())
 
@@ -122,10 +139,27 @@ async def test_time_zone_settings(
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
 
-    assert fake.sync_requests == [
-        "TimeMethod=1&&TimeZoneNegativ=1&&TimeDiffSecs=25200"
-        "&&ClockType=0&&AutoDaylight=0&&Date_Save"
-    ]
+    assert fake.sync_requests == [_sync_body(-25200)]
+
+
+async def test_resync_on_dst_change(
+    hass: HomeAssistant,
+    scanner: tuple[FakeScanner, str],
+    setup_integration: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A correct clock is synced again when the UTC offset changes."""
+    fake, _ = scanner
+    coordinator = setup_integration.runtime_data
+    # Synced once at setup although the clock was right: offset unknown.
+    assert fake.sync_requests == [_sync_body(7200)]
+
+    await coordinator.async_refresh()
+    assert len(fake.sync_requests) == 1
+
+    freezer.move_to(WINTER)
+    await coordinator.async_refresh()
+    assert fake.sync_requests == [_sync_body(7200), _sync_body(3600)]
 
 
 async def test_offline_keeps_values(
@@ -195,6 +229,7 @@ async def test_sync_button(
 ) -> None:
     """Pressing the button triggers a sync."""
     fake, _ = scanner
+    fake.sync_requests.clear()
     with patch("custom_components.brother_ads_2700w.button.REFRESH_DELAY", 0):
         await hass.services.async_call(
             "button",
@@ -202,7 +237,7 @@ async def test_sync_button(
             {ATTR_ENTITY_ID: _entity_id(hass, "button", "sync_time")},
             blocking=True,
         )
-    assert fake.sync_requests == [EXPECTED_SYNC_BODY]
+    assert fake.sync_requests == [_sync_body(7200)]
 
 
 async def test_unload(hass: HomeAssistant, setup_integration: MockConfigEntry) -> None:

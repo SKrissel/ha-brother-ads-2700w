@@ -55,11 +55,13 @@ can be switched off in the integration options.
 
 - An SNTP server must be configured on the scanner
   (web interface → Administrator → Date & Time → SNTP).
-- The time sync saves the date settings of the scanner. Time zone and daylight
-  saving are taken from Home Assistant's time zone; the 24-hour clock format is
-  used.
-- The scanner is polled every 30 seconds. If its clock is off by more than two
-  minutes, a sync is triggered, at most once every five minutes.
+- The time sync saves the date settings of the scanner with the UTC offset
+  currently in effect in Home Assistant's time zone (including daylight saving)
+  and the 24-hour clock format. The scanner's own daylight saving switch is
+  turned off, because it does not take effect on the ADS-2700W.
+- The scanner is polled every 30 seconds. A sync is triggered when its clock is
+  off by more than two minutes or when the UTC offset changed since the last
+  sync (daylight saving), at most once every five minutes.
 
 ## Icon
 
