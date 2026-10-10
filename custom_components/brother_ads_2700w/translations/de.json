@@ -57,6 +57,9 @@
       }
     },
     "sensor": {
+      "status": {
+        "name": "Status"
+      },
       "page_count": {
         "name": "Gescannte Seiten",
         "unit_of_measurement": "Seiten"
@@ -89,6 +92,12 @@
       },
       "clock_offset": {
         "name": "Zeitabweichung"
+      },
+      "location": {
+        "name": "Standort"
+      },
+      "contact": {
+        "name": "Ansprechpartner"
       }
     },
     "button": {

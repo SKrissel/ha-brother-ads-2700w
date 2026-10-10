@@ -43,6 +43,14 @@ def _m(attr: str) -> Callable[[BrotherAdsData], StateType]:
     return value
 
 
+def _text(attr: str) -> Callable[[BrotherAdsData], StateType]:
+    def value(data: BrotherAdsData) -> StateType:
+        maintenance: Maintenance | None = data.maintenance
+        return (getattr(maintenance, attr) or None) if maintenance else None
+
+    return value
+
+
 def _error_attrs(data: BrotherAdsData) -> dict[str, Any]:
     if data.maintenance is None:
         return {}
@@ -50,6 +58,12 @@ def _error_attrs(data: BrotherAdsData) -> dict[str, Any]:
 
 
 SENSORS: tuple[BrotherAdsSensorDescription, ...] = (
+    BrotherAdsSensorDescription(
+        key="status",
+        translation_key="status",
+        live=True,
+        value_fn=lambda data: data.state.message if data.state else None,
+    ),
     BrotherAdsSensorDescription(
         key="page_count",
         translation_key="page_count",
@@ -107,6 +121,18 @@ SENSORS: tuple[BrotherAdsSensorDescription, ...] = (
         translation_key="maintenance_reset_count",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=_m("maintenance_reset_count"),
+    ),
+    BrotherAdsSensorDescription(
+        key="location",
+        translation_key="location",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_text("location"),
+    ),
+    BrotherAdsSensorDescription(
+        key="contact",
+        translation_key="contact",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_text("contact"),
     ),
     BrotherAdsSensorDescription(
         key="clock_offset",

@@ -9,7 +9,13 @@ from freezegun.api import FrozenDateTimeFactory
 import pytest
 
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
+from homeassistant.const import (
+    ATTR_ENTITY_ID,
+    STATE_OFF,
+    STATE_ON,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.icon import async_get_icons
@@ -81,6 +87,36 @@ async def test_setup_and_values(
     assert _state(hass, "sensor", "paper_jams").state == "0"
     assert _state(hass, "sensor", "errors").state == "0"
     assert abs(float(_state(hass, "sensor", "clock_offset").state)) < 5
+    assert _state(hass, "sensor", "status").state == "Ready"
+    assert _state(hass, "sensor", "location").state == "Wohnzimmer"
+    assert _state(hass, "sensor", "contact").state == "a@b.com"
+
+
+async def test_status_changes(
+    hass: HomeAssistant,
+    scanner: tuple[FakeScanner, str],
+    setup_integration: MockConfigEntry,
+) -> None:
+    """The operating state follows the device."""
+    fake, _ = scanner
+    fake.status = "Cover is Open"
+    await setup_integration.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert _state(hass, "sensor", "status").state == "Cover is Open"
+
+
+async def test_empty_location_is_unknown(
+    hass: HomeAssistant,
+    scanner: tuple[FakeScanner, str],
+    config_entry: MockConfigEntry,
+) -> None:
+    """Unset contact and location fields are reported as unknown."""
+    fake, _ = scanner
+    fake.location = ""
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert _state(hass, "sensor", "location").state == STATE_UNKNOWN
 
 
 async def test_auto_time_sync(
@@ -203,6 +239,8 @@ async def test_offline_keeps_values(
     assert _state(hass, "sensor", "page_count").state == "1060"
     assert _state(hass, "sensor", "roller_remaining").state == "98.9"
     assert _state(hass, "sensor", "clock_offset").state == STATE_UNAVAILABLE
+    assert _state(hass, "sensor", "status").state == STATE_UNAVAILABLE
+    assert _state(hass, "sensor", "location").state == "Wohnzimmer"
     assert _state(hass, "button", "sync_time").state == STATE_UNAVAILABLE
 
 

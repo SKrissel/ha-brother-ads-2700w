@@ -9,6 +9,7 @@ from email.utils import parsedate_to_datetime
 import io
 import logging
 from typing import Any
+from xml.etree import ElementTree as ET
 
 import aiohttp
 
@@ -22,6 +23,7 @@ DEFAULT_TIMEOUT = 5
 TIME_SYNC_TIMEOUT = 20
 
 MAINTENANCE_PATH = "/ft/gen_export_maintenance"
+DEVICE_STATUS_PATH = "/ft/gen_status"
 STATUS_PAGE_PATH = "/EWS/general/status.html"
 DATE_PAGE_PATH = "/EWS/admin/date.html"
 LOGIN_PATH = "/auth/login"
@@ -60,6 +62,8 @@ class Maintenance:
 
     model: str
     serial: str
+    location: str
+    contact: str
     firmware_main: str
     firmware_sub: str
     memory_mb: int | None
@@ -93,12 +97,24 @@ class Maintenance:
 
 
 @dataclass(frozen=True)
+class ScannerState:
+    """Operating state as shown on the start page of the web interface."""
+
+    # Message as reported by the device, e.g. "Ready" or "Cover is Open".
+    message: str
+    # 3 = warning, 5 = error; not sent by every firmware.
+    status_type: int | None
+
+
+@dataclass(frozen=True)
 class DeviceStatus:
     """Result of a single poll."""
 
     maintenance: Maintenance
     # Time shown by the device (naive, in the device's local time zone).
     device_time: datetime | None
+    # None if the status page could not be read.
+    state: ScannerState | None = None
 
 
 @dataclass(frozen=True)
@@ -145,6 +161,8 @@ def parse_maintenance(text: str) -> Maintenance:
     return Maintenance(
         model=data.get("Model Name", "").strip(),
         serial=data.get("Serial No.", "").strip(),
+        location=data.get("Location", "").strip(),
+        contact=data.get("Contact", "").strip(),
         firmware_main=data.get("Main Firmware Version", "").strip(),
         firmware_sub=data.get("Sub3 Firmware Version", "").strip(),
         memory_mb=_int(data, "Memory Size"),
@@ -158,6 +176,23 @@ def parse_maintenance(text: str) -> Maintenance:
         paper_jams=_int(data, "Total Paper Jams"),
         errors=tuple(errors),
     )
+
+
+def parse_scanner_state(text: str) -> ScannerState:
+    """Parse the XML returned by the status endpoint."""
+    try:
+        root = ET.fromstring(text.strip())
+    except ET.ParseError as err:
+        raise InvalidResponse(f"Invalid status XML: {err}") from err
+    message = (root.findtext("Device_Status") or "").strip()
+    if not message:
+        raise InvalidResponse("Status XML without Device_Status")
+    status_type: int | None
+    try:
+        status_type = int((root.findtext("StatusType") or "").strip())
+    except ValueError:
+        status_type = None
+    return ScannerState(message=message, status_type=status_type)
 
 
 def _parse_date_header(value: str | None) -> datetime | None:
@@ -227,14 +262,29 @@ class BrotherAdsClient:
             raise CannotConnect(f"{method} {path}: {err!r}") from err
 
     async def async_get_status(self) -> DeviceStatus:
-        """Fetch the maintenance export. Works without login."""
+        """Fetch the maintenance export and the operating state.
+
+        Works without login. The operating state is optional: if it cannot be
+        read, the poll still succeeds with ``state=None``.
+        """
         status, text, headers = await self._request("GET", MAINTENANCE_PATH)
         if status != 200:
             raise InvalidResponse(f"Maintenance export returned HTTP {status}")
         return DeviceStatus(
             maintenance=parse_maintenance(text),
             device_time=_parse_date_header(headers.get("Date")),
+            state=await self._async_get_state(),
         )
+
+    async def _async_get_state(self) -> ScannerState | None:
+        try:
+            status, text, _ = await self._request("GET", DEVICE_STATUS_PATH)
+            if status != 200:
+                raise InvalidResponse(f"Status returned HTTP {status}")
+            return parse_scanner_state(text)
+        except BrotherAdsError as err:
+            _LOGGER.debug("Could not read operating state: %s", err)
+            return None
 
     async def _async_login(self) -> None:
         # The session cookie is handed out before the login and then unlocked.

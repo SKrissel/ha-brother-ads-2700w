@@ -17,6 +17,7 @@ from .api import (
     CannotConnect,
     InvalidResponse,
     Maintenance,
+    ScannerState,
     TimeSettings,
 )
 from .const import (
@@ -42,6 +43,8 @@ class BrotherAdsData:
     maintenance: Maintenance | None
     # Device clock minus Home Assistant clock in seconds (only while online).
     clock_offset: float | None
+    # Operating state (only while online).
+    state: ScannerState | None = None
 
 
 class BrotherAdsCoordinator(DataUpdateCoordinator[BrotherAdsData]):
@@ -112,7 +115,7 @@ class BrotherAdsCoordinator(DataUpdateCoordinator[BrotherAdsData]):
         ):
             await self._async_auto_sync(f"clock is off by {offset:.0f} s")
 
-        return BrotherAdsData(True, status.maintenance, offset)
+        return BrotherAdsData(True, status.maintenance, offset, status.state)
 
     async def _async_auto_sync(self, reason: str) -> None:
         now = dt_util.utcnow()

@@ -14,12 +14,14 @@ online with a wrong clock and makes it sync right away.
 | Entity | Description |
 |---|---|
 | Online | Whether the scanner is switched on and reachable |
+| Status | Operating state as shown on the start page of the web interface, e.g. `Ready` or `Cover is Open` (unavailable while the scanner is off) |
 | Scanned pages | Total page counter |
 | Pick-up roller remaining | Remaining roller life in % (100,000 pages) and pages |
 | Maintenance remaining | Remaining scheduled maintenance interval in % (5,000 pages) and pages |
 | Paper jams | Total paper jams |
 | Errors | Number of entries in the error history, entries as attribute |
 | Pick-up roller replacements, Maintenance resets | Diagnostic counters |
+| Location, Contact | As configured on the scanner (diagnostic) |
 | Clock offset | Deviation of the time shown by the scanner from Home Assistant's local time (diagnostic) |
 | Sync time | Button that triggers an SNTP sync |
 

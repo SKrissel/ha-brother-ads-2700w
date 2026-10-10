@@ -19,7 +19,8 @@ MAINTENANCE_CSV = (
     + ","
     + ",".join(f'"Error Count {i}"' for i in range(1, 11))
     + ",\n"
-    '"ADS-2700W","","","192.168.1.32","E77676M0X115119","M","M:4.28/P:3.89",'
+    '"ADS-2700W","{location}","{contact}","192.168.1.32","E77676M0X115119",'
+    '"M","M:4.28/P:3.89",'
     '"512","{roller}","{maint}","{pages}","0","0","{jams}",'
     + ",".join(f'"{{e{i}}}"' for i in range(1, 11))
     + ","
@@ -40,6 +41,9 @@ class FakeScanner:
     # Error of the device clock, e.g. after power-on (factory date).
     clock_error: timedelta = timedelta(0)
     pages: int = 1060
+    status: str = "Ready"
+    location: str = "Wohnzimmer"
+    contact: str = "a@b.com"
     jams: int = 0
     errors: list[tuple[str, int]] = field(default_factory=list)
     sessions: dict[str, bool] = field(default_factory=dict)
@@ -51,6 +55,8 @@ class FakeScanner:
             "maint": self.pages,
             "pages": self.pages,
             "jams": self.jams,
+            "location": self.location,
+            "contact": self.contact,
         }
         for i in range(1, 11):
             msg, cnt = self.errors[i - 1] if i <= len(self.errors) else ("", "")
@@ -82,6 +88,16 @@ class FakeScanner:
                 "Content-Type": "application/force-download",
             },
         )
+
+    async def gen_status(self, request: web.Request) -> web.Response:
+        # Format as captured from the device.
+        xml = (
+            '<?xml version="1.0" encoding="utf-8"?><ScannerStatus>'
+            f"<Device_Status>{self.status}</Device_Status>"
+            f"<Contact>{self.contact}</Contact>"
+            f"<Location>{self.location}</Location></ScannerStatus>"
+        )
+        return web.Response(text=xml, content_type="text/xml", charset="utf-8")
 
     async def login(self, request: web.Request) -> web.Response:
         body = (await request.read()).decode()
@@ -117,6 +133,7 @@ class FakeScanner:
         app = web.Application()
         app.router.add_get("/EWS/general/status.html", self.status_page)
         app.router.add_get("/ft/gen_export_maintenance", self.maintenance)
+        app.router.add_get("/ft/gen_status", self.gen_status)
         app.router.add_post("/auth/login", self.login)
         app.router.add_get("/auth/status", self.auth_status)
         app.router.add_post("/auth/logout", self.logout)

@@ -57,6 +57,9 @@
       }
     },
     "sensor": {
+      "status": {
+        "name": "Status"
+      },
       "page_count": {
         "name": "Scanned pages",
         "unit_of_measurement": "pages"
@@ -89,6 +92,12 @@
       },
       "clock_offset": {
         "name": "Clock offset"
+      },
+      "location": {
+        "name": "Location"
+      },
+      "contact": {
+        "name": "Contact"
       }
     },
     "button": {
