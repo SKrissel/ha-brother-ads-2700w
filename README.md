@@ -13,7 +13,7 @@ online with a wrong clock and makes it sync right away.
 
 | Entity | Description |
 |---|---|
-| Connectivity | Whether the scanner is switched on and reachable |
+| Online | Whether the scanner is switched on and reachable |
 | Scanned pages | Total page counter |
 | Pick-up roller remaining | Remaining roller life in % (100,000 pages) and pages |
 | Maintenance remaining | Remaining scheduled maintenance interval in % (5,000 pages) and pages |

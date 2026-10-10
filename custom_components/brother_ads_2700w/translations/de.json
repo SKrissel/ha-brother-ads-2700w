@@ -51,6 +51,11 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      }
+    },
     "sensor": {
       "page_count": {
         "name": "Gescannte Seiten",

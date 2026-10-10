@@ -1,0 +1,52 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "online": {
+        "default": "mdi:scanner-off",
+        "state": {
+          "on": "mdi:scanner"
+        }
+      }
+    },
+    "button": {
+      "sync_time": {
+        "default": "mdi:clock-check-outline"
+      }
+    },
+    "sensor": {
+      "page_count": {
+        "default": "mdi:file-document-multiple-outline"
+      },
+      "roller_remaining": {
+        "default": "mdi:cog-counterclockwise"
+      },
+      "roller_remaining_pages": {
+        "default": "mdi:cog-counterclockwise"
+      },
+      "maintenance_remaining": {
+        "default": "mdi:wrench-clock"
+      },
+      "maintenance_remaining_pages": {
+        "default": "mdi:wrench-clock"
+      },
+      "paper_jams": {
+        "default": "mdi:file-alert-outline"
+      },
+      "errors": {
+        "default": "mdi:alert-circle-outline",
+        "state": {
+          "0": "mdi:check-circle-outline"
+        }
+      },
+      "roller_replace_count": {
+        "default": "mdi:cog-refresh-outline"
+      },
+      "maintenance_reset_count": {
+        "default": "mdi:wrench-check-outline"
+      },
+      "clock_offset": {
+        "default": "mdi:clock-alert-outline"
+      }
+    }
+  }
+}

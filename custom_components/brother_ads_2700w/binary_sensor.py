@@ -28,6 +28,7 @@ class BrotherAdsOnlineSensor(BrotherAdsEntity, BinarySensorEntity):
     """Whether the scanner is switched on and reachable."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_translation_key = "online"
 
     def __init__(self, coordinator: BrotherAdsCoordinator) -> None:
         """Initialize the sensor."""

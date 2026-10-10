@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.icon import async_get_icons
 
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -274,3 +275,17 @@ async def test_unload(hass: HomeAssistant, setup_integration: MockConfigEntry) -
     """The entry can be unloaded."""
     assert await hass.config_entries.async_unload(setup_integration.entry_id)
     assert setup_integration.state is ConfigEntryState.NOT_LOADED
+
+
+async def test_entity_icons(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    """Every entity has an icon defined in icons.json."""
+    icons = (await async_get_icons(hass, "entity", {DOMAIN}))[DOMAIN]
+    registry = er.async_get(hass)
+    entries = er.async_entries_for_config_entry(registry, setup_integration.entry_id)
+    assert entries
+    for entry in entries:
+        assert entry.translation_key in icons[entry.domain], entry.entity_id
+    assert icons["binary_sensor"]["online"]["state"]["on"] == "mdi:scanner"
+    assert _state(hass, "binary_sensor", "online").name == "Brother ADS-2700W Online"
