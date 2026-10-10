@@ -1,0 +1,12 @@
+{
+  "domain": "brother_ads_2700w",
+  "name": "Brother ADS-2700W",
+  "codeowners": ["@SKrissel"],
+  "config_flow": true,
+  "documentation": "https://github.com/SKrissel/ha-brother-ads-2700w",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/SKrissel/ha-brother-ads-2700w/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

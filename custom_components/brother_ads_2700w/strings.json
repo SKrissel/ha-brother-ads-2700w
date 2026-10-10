@@ -1,0 +1,103 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Brother ADS-2700W",
+        "description": "The scanner must be switched on during setup.",
+        "data": {
+          "host": "Host",
+          "password": "Administrator password"
+        },
+        "data_description": {
+          "host": "IP address or host name of the scanner.",
+          "password": "Password of the web interface. Only needed for the time sync, leave empty if none is set."
+        }
+      },
+      "reconfigure": {
+        "title": "Brother ADS-2700W",
+        "description": "The scanner must be switched on to apply the changes.",
+        "data": {
+          "host": "Host",
+          "password": "Administrator password"
+        },
+        "data_description": {
+          "host": "IP address or host name of the scanner.",
+          "password": "Password of the web interface. Only needed for the time sync, leave empty if none is set."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect. Is the scanner switched on?",
+      "invalid_auth": "The password was rejected.",
+      "unsupported": "The device did not answer like a Brother ADS-2700W.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured",
+      "reconfigure_successful": "Re-configuration was successful",
+      "wrong_device": "This is a different scanner than the configured one."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "auto_time_sync": "Sync time automatically"
+        },
+        "data_description": {
+          "auto_time_sync": "Trigger an SNTP sync as soon as the scanner is switched on and its clock is off. Needs the administrator password and an SNTP server configured on the scanner."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "page_count": {
+        "name": "Scanned pages",
+        "unit_of_measurement": "pages"
+      },
+      "roller_remaining": {
+        "name": "Pick-up roller remaining"
+      },
+      "roller_remaining_pages": {
+        "name": "Pick-up roller remaining pages",
+        "unit_of_measurement": "pages"
+      },
+      "maintenance_remaining": {
+        "name": "Maintenance remaining"
+      },
+      "maintenance_remaining_pages": {
+        "name": "Maintenance remaining pages",
+        "unit_of_measurement": "pages"
+      },
+      "paper_jams": {
+        "name": "Paper jams"
+      },
+      "errors": {
+        "name": "Errors"
+      },
+      "roller_replace_count": {
+        "name": "Pick-up roller replacements"
+      },
+      "maintenance_reset_count": {
+        "name": "Maintenance resets"
+      },
+      "clock_offset": {
+        "name": "Clock offset"
+      }
+    },
+    "button": {
+      "sync_time": {
+        "name": "Sync time"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "The scanner rejected the administrator password."
+    },
+    "sync_failed": {
+      "message": "Time sync failed: {error}"
+    }
+  }
+}

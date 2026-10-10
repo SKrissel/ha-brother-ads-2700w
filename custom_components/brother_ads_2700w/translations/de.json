@@ -1,0 +1,103 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Brother ADS-2700W",
+        "description": "Der Scanner muss während der Einrichtung eingeschaltet sein.",
+        "data": {
+          "host": "Host",
+          "password": "Administrator-Kennwort"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Scanners.",
+          "password": "Kennwort des Web-Interfaces. Wird nur für die Zeitsynchronisation benötigt, leer lassen, wenn keins gesetzt ist."
+        }
+      },
+      "reconfigure": {
+        "title": "Brother ADS-2700W",
+        "description": "Der Scanner muss eingeschaltet sein, damit die Änderungen übernommen werden können.",
+        "data": {
+          "host": "Host",
+          "password": "Administrator-Kennwort"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Scanners.",
+          "password": "Kennwort des Web-Interfaces. Wird nur für die Zeitsynchronisation benötigt, leer lassen, wenn keins gesetzt ist."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen. Ist der Scanner eingeschaltet?",
+      "invalid_auth": "Das Kennwort wurde abgelehnt.",
+      "unsupported": "Das Gerät antwortet nicht wie ein Brother ADS-2700W.",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits eingerichtet",
+      "reconfigure_successful": "Die Neukonfiguration war erfolgreich",
+      "wrong_device": "Das ist ein anderer Scanner als der eingerichtete."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "auto_time_sync": "Uhrzeit automatisch synchronisieren"
+        },
+        "data_description": {
+          "auto_time_sync": "Löst eine SNTP-Synchronisation aus, sobald der Scanner eingeschaltet wird und seine Uhr falsch geht. Benötigt das Administrator-Kennwort und einen auf dem Scanner eingetragenen SNTP-Server."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "page_count": {
+        "name": "Gescannte Seiten",
+        "unit_of_measurement": "Seiten"
+      },
+      "roller_remaining": {
+        "name": "Einzugsrolle verbleibend"
+      },
+      "roller_remaining_pages": {
+        "name": "Einzugsrolle verbleibende Seiten",
+        "unit_of_measurement": "Seiten"
+      },
+      "maintenance_remaining": {
+        "name": "Wartung verbleibend"
+      },
+      "maintenance_remaining_pages": {
+        "name": "Wartung verbleibende Seiten",
+        "unit_of_measurement": "Seiten"
+      },
+      "paper_jams": {
+        "name": "Papierstaus"
+      },
+      "errors": {
+        "name": "Fehler"
+      },
+      "roller_replace_count": {
+        "name": "Einzugsrolle gewechselt"
+      },
+      "maintenance_reset_count": {
+        "name": "Wartung zurückgesetzt"
+      },
+      "clock_offset": {
+        "name": "Zeitabweichung"
+      }
+    },
+    "button": {
+      "sync_time": {
+        "name": "Uhrzeit synchronisieren"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "Der Scanner hat das Administrator-Kennwort abgelehnt."
+    },
+    "sync_failed": {
+      "message": "Zeitsynchronisation fehlgeschlagen: {error}"
+    }
+  }
+}
