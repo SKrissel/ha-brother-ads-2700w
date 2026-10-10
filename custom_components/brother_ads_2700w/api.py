@@ -97,6 +97,7 @@ class DeviceStatus:
     """Result of a single poll."""
 
     maintenance: Maintenance
+    # Time shown by the device (naive, in the device's local time zone).
     device_time: datetime | None
 
 
@@ -160,10 +161,15 @@ def parse_maintenance(text: str) -> Maintenance:
 
 
 def _parse_date_header(value: str | None) -> datetime | None:
+    """Return the device's local time from the Date header.
+
+    The header is labelled GMT but carries the local time the device
+    displays, so the time zone is dropped.
+    """
     if not value:
         return None
     try:
-        return parsedate_to_datetime(value)
+        return parsedate_to_datetime(value).replace(tzinfo=None)
     except (TypeError, ValueError):
         return None
 

@@ -72,8 +72,6 @@ class BrotherAdsCoordinator(DataUpdateCoordinator[BrotherAdsData]):
         self._online = False
         self._last_maintenance: Maintenance | None = None
         self._last_sync_attempt: datetime | None = None
-        # UTC offset written to the device by the last successful sync.
-        self._synced_utc_offset: int | None = None
 
     @property
     def auto_time_sync(self) -> bool:
@@ -100,18 +98,19 @@ class BrotherAdsCoordinator(DataUpdateCoordinator[BrotherAdsData]):
         self._online = True
         self._last_maintenance = status.maintenance
 
+        # Compare the time the device displays with Home Assistant's local
+        # time. This also catches a wrong time zone or daylight saving offset.
         offset: float | None = None
         if status.device_time is not None:
-            offset = (status.device_time - dt_util.utcnow()).total_seconds()
+            local_now = dt_util.now().replace(tzinfo=None)
+            offset = (status.device_time - local_now).total_seconds()
 
-        if self.auto_time_sync:
-            if offset is not None and abs(offset) > CLOCK_TOLERANCE:
-                await self._async_auto_sync(f"clock is off by {offset:.0f} s")
-            elif self._synced_utc_offset != self._current_utc_offset():
-                # The device clock is right in UTC, but the local time it
-                # shows uses an outdated offset (daylight saving changed,
-                # or the offset is unknown after a restart).
-                await self._async_auto_sync("UTC offset changed")
+        if (
+            self.auto_time_sync
+            and offset is not None
+            and abs(offset) > CLOCK_TOLERANCE
+        ):
+            await self._async_auto_sync(f"clock is off by {offset:.0f} s")
 
         return BrotherAdsData(True, status.maintenance, offset)
 
@@ -131,9 +130,7 @@ class BrotherAdsCoordinator(DataUpdateCoordinator[BrotherAdsData]):
     async def async_sync_time(self) -> None:
         """Trigger an SNTP sync on the device."""
         self._last_sync_attempt = dt_util.utcnow()
-        settings = self._time_settings()
-        await self.client.async_sync_time(settings)
-        self._synced_utc_offset = settings.utc_offset_seconds
+        await self.client.async_sync_time(self._time_settings())
 
     @staticmethod
     def _current_utc_offset() -> int:
@@ -146,7 +143,8 @@ class BrotherAdsCoordinator(DataUpdateCoordinator[BrotherAdsData]):
 
         The device's own daylight saving switch does not take effect (it
         shows standard time all year), so the current offset including
-        daylight saving is written instead and refreshed when it changes.
+        daylight saving is written instead. After a daylight saving change
+        the displayed time is off by an hour, which triggers a new sync.
         """
         return TimeSettings(
             utc_offset_seconds=cls._current_utc_offset(), auto_daylight=False

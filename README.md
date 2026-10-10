@@ -20,7 +20,7 @@ online with a wrong clock and makes it sync right away.
 | Paper jams | Total paper jams |
 | Errors | Number of entries in the error history, entries as attribute |
 | Pick-up roller replacements, Maintenance resets | Diagnostic counters |
-| Clock offset | Deviation of the scanner clock from Home Assistant (diagnostic) |
+| Clock offset | Deviation of the time shown by the scanner from Home Assistant's local time (diagnostic) |
 | Sync time | Button that triggers an SNTP sync |
 
 The scanner is usually switched off, so the counters keep their last known
@@ -59,15 +59,17 @@ can be switched off in the integration options.
   currently in effect in Home Assistant's time zone (including daylight saving)
   and the 24-hour clock format. The scanner's own daylight saving switch is
   turned off, because it does not take effect on the ADS-2700W.
-- The scanner is polled every 30 seconds. A sync is triggered when its clock is
-  off by more than two minutes or when the UTC offset changed since the last
-  sync (daylight saving), at most once every five minutes.
+- The scanner is polled every 30 seconds and its displayed time is compared with
+  Home Assistant's local time (the scanner reports its local time in the HTTP
+  `Date` header). A sync is triggered when it is off by more than two minutes,
+  which also covers a daylight saving change, at most once every five minutes.
 
 ## Icon
 
 The integration ships its own icon in `custom_components/brother_ads_2700w/brand/`,
-which Home Assistant 2026.3 and newer picks up automatically. Older versions show
-the generic placeholder.
+which Home Assistant 2026.3 and newer shows on the integration and device pages.
+Older versions show the generic placeholder. The HACS repository list still loads
+icons from the central brands CDN and therefore shows the placeholder for now.
 
 ## Limitations
 
@@ -84,3 +86,14 @@ pytest
 
 The tests run against a fake of the scanner's web server modelled on captured
 traffic (`tests/fake_scanner.py`).
+
+### Releasing
+
+Bump `version` in `custom_components/brother_ads_2700w/manifest.json`, commit,
+then push a matching tag. The release workflow creates the GitHub release that
+HACS uses for version numbers and update notifications.
+
+```sh
+git tag v0.1.3
+git push origin v0.1.3
+```

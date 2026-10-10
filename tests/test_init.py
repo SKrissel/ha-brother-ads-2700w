@@ -35,9 +35,10 @@ def _sync_body(offset: int) -> str:
 
 
 @pytest.fixture(autouse=True)
-def _freeze_summer(freezer: FrozenDateTimeFactory) -> None:
-    """Run all tests at a fixed time during daylight saving time."""
+async def _berlin_summer(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
+    """Run all tests in Europe/Berlin at a fixed time during DST."""
     freezer.move_to(SUMMER)
+    await hass.config.async_set_time_zone("Europe/Berlin")
 
 
 def _entity_id(hass: HomeAssistant, platform: str, key: str) -> str:
@@ -88,9 +89,8 @@ async def test_auto_time_sync(
 ) -> None:
     """A wrong device clock triggers an SNTP sync with Home Assistant's zone."""
     fake, _ = scanner
-    fake.clock_offset = timedelta(days=-3000)  # factory reset date
+    fake.clock_error = timedelta(days=-3000)  # factory reset date
 
-    await hass.config.async_set_time_zone("Europe/Berlin")
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
@@ -102,7 +102,7 @@ async def test_auto_time_sync(
     assert not any(fake.sessions.values())
 
     # No second attempt within the retry interval.
-    fake.clock_offset = timedelta(days=-3000)
+    fake.clock_error = timedelta(days=-3000)
     await config_entry.runtime_data.async_refresh()
     assert len(fake.sync_requests) == 1
 
@@ -114,7 +114,7 @@ async def test_auto_time_sync_disabled(
 ) -> None:
     """No sync when the option is off."""
     fake, _ = scanner
-    fake.clock_offset = timedelta(days=-3000)
+    fake.clock_error = timedelta(days=-3000)
     config_entry.add_to_hass(hass)
     hass.config_entries.async_update_entry(
         config_entry, options={CONF_AUTO_TIME_SYNC: False}
@@ -133,7 +133,7 @@ async def test_time_zone_settings(
 ) -> None:
     """Negative offsets and zones without daylight saving are handled."""
     fake, _ = scanner
-    fake.clock_offset = timedelta(days=-3000)
+    fake.clock_error = timedelta(days=-3000)
     await hass.config.async_set_time_zone("America/Phoenix")
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
@@ -142,24 +142,54 @@ async def test_time_zone_settings(
     assert fake.sync_requests == [_sync_body(-25200)]
 
 
+async def test_no_sync_when_clock_is_right(
+    hass: HomeAssistant,
+    scanner: tuple[FakeScanner, str],
+    setup_integration: MockConfigEntry,
+) -> None:
+    """A device showing the right local time is left alone."""
+    fake, _ = scanner
+    await setup_integration.runtime_data.async_refresh()
+    assert fake.sync_requests == []
+
+
+async def test_wrong_utc_offset_is_fixed(
+    hass: HomeAssistant,
+    scanner: tuple[FakeScanner, str],
+    config_entry: MockConfigEntry,
+) -> None:
+    """A device showing standard time during DST is detected and synced.
+
+    The Date header carries the displayed local time, so a wrong offset shows
+    up as clock offset although the device clock is right in UTC.
+    """
+    fake, _ = scanner
+    fake.utc_offset = 3600  # CET while CEST is in effect
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert fake.sync_requests == [_sync_body(7200)]
+    await config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert abs(float(_state(hass, "sensor", "clock_offset").state)) < 5
+
+
 async def test_resync_on_dst_change(
     hass: HomeAssistant,
     scanner: tuple[FakeScanner, str],
     setup_integration: MockConfigEntry,
     freezer: FrozenDateTimeFactory,
 ) -> None:
-    """A correct clock is synced again when the UTC offset changes."""
+    """After the switch to standard time the device is synced again."""
     fake, _ = scanner
     coordinator = setup_integration.runtime_data
-    # Synced once at setup although the clock was right: offset unknown.
-    assert fake.sync_requests == [_sync_body(7200)]
-
-    await coordinator.async_refresh()
-    assert len(fake.sync_requests) == 1
 
     freezer.move_to(WINTER)
     await coordinator.async_refresh()
-    assert fake.sync_requests == [_sync_body(7200), _sync_body(3600)]
+    await hass.async_block_till_done()
+    assert fake.sync_requests == [_sync_body(3600)]
+    assert fake.utc_offset == 3600
 
 
 async def test_offline_keeps_values(

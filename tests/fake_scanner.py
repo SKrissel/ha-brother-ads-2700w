@@ -34,7 +34,11 @@ class FakeScanner:
     """State of the fake device."""
 
     password: str = "geheim"
-    clock_offset: timedelta = timedelta(0)
+    # UTC offset configured on the device (seconds). Default matches
+    # Europe/Berlin in summer, the time the tests are frozen to.
+    utc_offset: int = 7200
+    # Error of the device clock, e.g. after power-on (factory date).
+    clock_error: timedelta = timedelta(0)
     pages: int = 1060
     jams: int = 0
     errors: list[tuple[str, int]] = field(default_factory=list)
@@ -66,7 +70,11 @@ class FakeScanner:
         return resp
 
     async def maintenance(self, request: web.Request) -> web.Response:
-        now = datetime.now(UTC) + self.clock_offset
+        # Like the real device: the header is labelled GMT but carries the
+        # local time the device displays.
+        now = (
+            datetime.now(UTC) + timedelta(seconds=self.utc_offset) + self.clock_error
+        )
         return web.Response(
             body=self.csv().encode(),
             headers={
@@ -95,8 +103,14 @@ class FakeScanner:
     async def date_info(self, request: web.Request) -> web.Response:
         if not self._logged_in(request):
             return web.Response(status=401, text="")
-        self.sync_requests.append((await request.read()).decode())
-        self.clock_offset = timedelta(0)
+        body = (await request.read()).decode()
+        self.sync_requests.append(body)
+        fields = dict(
+            part.split("=", 1) for part in body.split("&&") if "=" in part
+        )
+        sign = -1 if fields["TimeZoneNegativ"] == "1" else 1
+        self.utc_offset = sign * int(fields["TimeDiffSecs"])
+        self.clock_error = timedelta(0)
         return web.Response(text="")
 
     def app(self) -> web.Application:
