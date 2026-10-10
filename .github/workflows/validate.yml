@@ -28,3 +28,24 @@ jobs:
           python-version: "3.13"
       - run: pip install -r requirements_test.txt
       - run: pytest
+
+  release:
+    # Creates a GitHub release (and tag) for a new manifest version once all
+    # checks passed. HACS uses releases for version numbers and updates.
+    needs: [hassfest, hacs, tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release for new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="v$(jq -r .version custom_components/brother_ads_2700w/manifest.json)"
+          if gh release view "$version" >/dev/null 2>&1; then
+            echo "Release $version already exists"
+          else
+            gh release create "$version" --target "$GITHUB_SHA" --title "$version" --generate-notes
+          fi

@@ -89,11 +89,6 @@ traffic (`tests/fake_scanner.py`).
 
 ### Releasing
 
-Bump `version` in `custom_components/brother_ads_2700w/manifest.json`, commit,
-then push a matching tag. The release workflow creates the GitHub release that
-HACS uses for version numbers and update notifications.
-
-```sh
-git tag v0.1.3
-git push origin v0.1.3
-```
+Bump `version` in `custom_components/brother_ads_2700w/manifest.json` and push
+to `main`. Once all checks pass, the workflow creates the tag and GitHub release
+for that version, which HACS uses for version numbers and update notifications.
