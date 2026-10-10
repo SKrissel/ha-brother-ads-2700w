@@ -61,6 +61,12 @@ can be switched off in the integration options.
 - The scanner is polled every 30 seconds. If its clock is off by more than two
   minutes, a sync is triggered, at most once every five minutes.
 
+## Icon
+
+The integration ships its own icon in `custom_components/brother_ads_2700w/brand/`,
+which Home Assistant 2026.3 and newer picks up automatically. Older versions show
+the generic placeholder.
+
 ## Limitations
 
 - Only tested with the ADS-2700W (firmware M:4.28/P:3.89). Other Brother ADS
